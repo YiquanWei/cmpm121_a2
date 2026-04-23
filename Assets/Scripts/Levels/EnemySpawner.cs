@@ -12,11 +12,46 @@ public class EnemySpawner : MonoBehaviour
     public Image level_selector;
     public GameObject button;
     public GameObject enemy;
-    public SpawnPoint[] SpawnPoints;    
+    public SpawnPoint[] SpawnPoints;
+
+    private List<EnemyData> enemies;
+    private List<LevelData> levels;
+
+    void LoadData()
+    {
+        Debug.Log("LoadData is running");
+        TextAsset enemyFile = Resources.Load<TextAsset>("enemies");
+        TextAsset levelFile = Resources.Load<TextAsset>("levels");
+
+        if (enemyFile == null)
+        {
+            Debug.LogError("Could not load enemies.json from Resources.");
+            enemies = new List<EnemyData>();
+        }
+        else
+        {
+            enemies = JsonConvert.DeserializeObject<List<EnemyData>>(enemyFile.text);
+        }
+
+        if (levelFile == null)
+        {
+            Debug.LogError("Could not load levels.json from Resources.");
+            levels = new List<LevelData>();
+        }
+        else
+        {
+            levels = JsonConvert.DeserializeObject<List<LevelData>>(levelFile.text);
+        }
+
+        Debug.Log($"Loaded {enemies.Count} enemies.");
+        Debug.Log($"Loaded {levels.Count} levels.");
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        LoadData();
+
         GameObject selector = Instantiate(button, level_selector.transform);
         selector.transform.localPosition = new Vector3(0, 130);
         selector.GetComponent<MenuSelectorController>().spawner = this;
