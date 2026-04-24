@@ -22,8 +22,8 @@ public class EnemySpawner : MonoBehaviour
 
     void CreateLevelButtons()
     {
-        float startY = 130f;
-        float spacing = 90f;
+        float startY = 60f;
+        float spacing = 70f;
 
         for (int i = 0; i < levels.Count; i++)
         {
