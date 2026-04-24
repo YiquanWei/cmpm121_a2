@@ -17,6 +17,25 @@ public class EnemySpawner : MonoBehaviour
     private List<EnemyData> enemies;
     private List<LevelData> levels;
 
+    private LevelData currentLevel;
+    private int currentWave;
+
+    void CreateLevelButtons()
+    {
+        float startY = 130f;
+        float spacing = 90f;
+
+        for (int i = 0; i < levels.Count; i++)
+        {
+            GameObject selector = Instantiate(button, level_selector.transform);
+            selector.transform.localPosition = new Vector3(0, startY - i * spacing);
+
+            MenuSelectorController controller = selector.GetComponent<MenuSelectorController>();
+            controller.spawner = this;
+            controller.SetLevel(levels[i].name);
+        }
+    }
+
     void LoadData()
     {
         Debug.Log("LoadData is running");
@@ -52,10 +71,7 @@ public class EnemySpawner : MonoBehaviour
     {
         LoadData();
 
-        GameObject selector = Instantiate(button, level_selector.transform);
-        selector.transform.localPosition = new Vector3(0, 130);
-        selector.GetComponent<MenuSelectorController>().spawner = this;
-        selector.GetComponent<MenuSelectorController>().SetLevel("Start");
+        CreateLevelButtons();
     }
 
     // Update is called once per frame
@@ -66,8 +82,16 @@ public class EnemySpawner : MonoBehaviour
 
     public void StartLevel(string levelname)
     {
+        currentLevel = levels.Find(level => level.name == levelname);
+        currentWave = 1;
+
+        if (currentLevel == null)
+        {
+            Debug.LogError($"Could not find level named {levelname}");
+            return;
+        }
+
         level_selector.gameObject.SetActive(false);
-        // this is not nice: we should not have to be required to tell the player directly that the level is starting
         GameManager.Instance.player.GetComponent<PlayerController>().StartLevel();
         StartCoroutine(SpawnWave());
     }
