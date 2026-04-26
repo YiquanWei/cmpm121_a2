@@ -80,6 +80,42 @@ public class EnemySpawner : MonoBehaviour
 
         return RPNEvaluator.RPNEvaluator.Evaluate(expression, variables);
     }
+
+    EnemyData GetEnemyDataByName(string enemyName)
+    {
+        return enemies.Find(e => e.name == enemyName);
+    }
+
+    IEnumerator SpawnEnemy(SpawnData spawn)
+    {
+        EnemyData enemyData = GetEnemyDataByName(spawn.enemy);
+
+        if (enemyData == null)
+        {
+            Debug.LogError($"Could not find enemy named {spawn.enemy}");
+            yield break;
+        }
+
+        SpawnPoint spawnPoint = SpawnPoints[Random.Range(0, SpawnPoints.Length)];
+        Vector2 offset = Random.insideUnitCircle * 1.8f;
+        Vector3 initialPosition = spawnPoint.transform.position + new Vector3(offset.x, offset.y, 0);
+
+        GameObject newEnemy = Instantiate(enemy, initialPosition, Quaternion.identity);
+
+        int hpValue = EvaluateExpression(spawn.hp ?? "base", enemyData.hp, currentWave);
+        int speedValue = EvaluateExpression(spawn.speed ?? "base", enemyData.speed, currentWave);
+
+        newEnemy.GetComponent<SpriteRenderer>().sprite = GameManager.Instance.enemySpriteManager.Get(enemyData.sprite);
+
+        EnemyController en = newEnemy.GetComponent<EnemyController>();
+        en.hp = new Hittable(hpValue, Hittable.Team.MONSTERS, newEnemy);
+        en.speed = speedValue;
+
+        GameManager.Instance.AddEnemy(newEnemy);
+
+        yield return null;
+    }
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -91,7 +127,7 @@ public class EnemySpawner : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 
     public void StartLevel(string levelname)
@@ -112,6 +148,7 @@ public class EnemySpawner : MonoBehaviour
 
     public void NextWave()
     {
+        currentWave++;
         StartCoroutine(SpawnWave());
     }
 
@@ -120,33 +157,37 @@ public class EnemySpawner : MonoBehaviour
     {
         GameManager.Instance.state = GameManager.GameState.COUNTDOWN;
         GameManager.Instance.countdown = 3;
+
         for (int i = 3; i > 0; i--)
         {
             yield return new WaitForSeconds(1);
             GameManager.Instance.countdown--;
         }
+
         GameManager.Instance.state = GameManager.GameState.INWAVE;
-        for (int i = 0; i < 10; ++i)
+
+        foreach (SpawnData spawn in currentLevel.spawns)
         {
-            yield return SpawnZombie();
+            EnemyData enemyData = GetEnemyDataByName(spawn.enemy);
+
+            if (enemyData == null)
+            {
+                Debug.LogError($"Could not find enemy named {spawn.enemy}");
+                continue;
+            }
+
+            int countValue = EvaluateExpression(spawn.count, 0, currentWave);
+            int delayValue = EvaluateExpression(spawn.delay ?? "2", 0, currentWave);
+
+            for (int i = 0; i < countValue; i++)
+            {
+                yield return SpawnEnemy(spawn);
+                yield return new WaitForSeconds(delayValue);
+            }
         }
+
         yield return new WaitWhile(() => GameManager.Instance.enemy_count > 0);
         GameManager.Instance.state = GameManager.GameState.WAVEEND;
     }
 
-    IEnumerator SpawnZombie()
-    {
-        SpawnPoint spawn_point = SpawnPoints[Random.Range(0, SpawnPoints.Length)];
-        Vector2 offset = Random.insideUnitCircle * 1.8f;
-                
-        Vector3 initial_position = spawn_point.transform.position + new Vector3(offset.x, offset.y, 0);
-        GameObject new_enemy = Instantiate(enemy, initial_position, Quaternion.identity);
-
-        new_enemy.GetComponent<SpriteRenderer>().sprite = GameManager.Instance.enemySpriteManager.Get(0);
-        EnemyController en = new_enemy.GetComponent<EnemyController>();
-        en.hp = new Hittable(50, Hittable.Team.MONSTERS, new_enemy);
-        en.speed = 10;
-        GameManager.Instance.AddEnemy(new_enemy);
-        yield return new WaitForSeconds(0.5f);
-    }
 }
