@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using UnityEngine.UI;
 using System.Collections;
 using System.Linq;
+using RPNEvaluator;
 
 public class EnemySpawner : MonoBehaviour
 {
@@ -66,6 +67,19 @@ public class EnemySpawner : MonoBehaviour
         Debug.Log($"Loaded {levels.Count} levels.");
     }
 
+    int EvaluateExpression(string expression, int baseValue, int waveValue)
+    {
+        if (string.IsNullOrWhiteSpace(expression))
+        {
+            return baseValue;
+        }
+
+        Dictionary<string, int> variables = new Dictionary<string, int>();
+        variables["base"] = baseValue;
+        variables["wave"] = waveValue;
+
+        return RPNEvaluator.RPNEvaluator.Evaluate(expression, variables);
+    }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
